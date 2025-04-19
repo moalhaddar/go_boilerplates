@@ -14,6 +14,11 @@ A context is used for some timeout in case the requests are not fullfilled witho
 
 A channel `gracefulShutdownChan` is used to sync the output between the two routines.
 
+# Usage
+- go run main.go
+- Have a slow reading client, example `curl --limit-rate 1 http://localhost:8080`
+- try to shutdown the server, it will gracefully shutdown.
+
 # Sources
 - https://dev.to/mokiat/proper-http-shutdown-in-go-3fji
 - https://jvns.ca/blog/2017/09/24/profiling-go-with-pprof/

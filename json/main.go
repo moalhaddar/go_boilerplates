@@ -2,8 +2,6 @@ package main
 
 import (
 	"encoding/json"
-	"errors"
-	"io"
 	"log"
 	"net/http"
 )
@@ -16,24 +14,39 @@ type HelloResponse struct {
 	Hello string `json:"dasd"`
 }
 
-func main() {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		var request HelloRequest
+type JSONHandler[req any, res any] func(r req) (res, error)
+
+func wrapJsonHandler[req any, res any](handler JSONHandler[req, res]) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var request req
 		err := json.NewDecoder(r.Body).Decode(&request)
 		if err != nil {
-			if errors.Is(err, io.ErrUnexpectedEOF) {
-				w.Write([]byte("Yo bro this is unexpected eof.."))
-				return
-			}
+			w.Write([]byte("failed to decode json"))
+			return
 		}
 
-		var resposne HelloResponse
-		resposne.Hello = request.Name
-		err = json.NewEncoder(w).Encode(resposne)
+		response, err := handler(request)
+		if err != nil {
+			w.Write([]byte("request failed for some reason.."))
+			return
+		}
+
+		err = json.NewEncoder(w).Encode(response)
 		if err != nil {
 			log.Printf("Failed to encode payload\n")
+			return
 		}
 	})
+}
+
+func handler(request HelloRequest) (HelloResponse, error) {
+	var response HelloResponse
+	response.Hello = request.Name
+	return response, nil
+}
+
+func main() {
+	http.Handle("/", wrapJsonHandler(handler))
 	http.ListenAndServe("0.0.0.0:8080", nil)
 	log.Printf("Hello world\n")
 }
